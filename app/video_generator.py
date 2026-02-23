@@ -315,7 +315,7 @@ def download_nature_clips(scene_names: list, target_duration: float, output_dir:
             if initial_resp.status_code == 200:
                 total_results = initial_resp.json().get("total_results", 0)
             
-            print(f"   � Found {total_results} total videos for '{keyword}'")
+            print(f"     Found {total_results} total videos for '{keyword}'")
             
             if total_results == 0:
                 print(f"   ⚠️ No videos found for {keyword}")
@@ -833,9 +833,11 @@ def render_ayah_layout(words: list, translation: str, fontsize: int, font_family
             
             if curr_w + w_w > max_w and curr_line:
                 # إنهاء السطر الحالي وحساب بيانات الخط الكامل
-                line_str = " ".join([w['text'] for w in curr_line])
+                # ✅ نعكس ترتيب الكلمات لأن العربية RTL
+                line_words_reversed = list(reversed(curr_line))
+                line_str = " ".join([w['text'] for w in line_words_reversed])
                 arabic_lines.append({
-                    'words': curr_line,
+                    'words': curr_line,  # نحتفظ بالترتيب الأصلي للهايلايت
                     'full_text': line_str,
                     'w': measure(line_str, font_arabic)[0]
                 })
@@ -847,9 +849,11 @@ def render_ayah_layout(words: list, translation: str, fontsize: int, font_family
                 curr_w += (w_w + space_w)
                 
         if curr_line:
-            line_str = " ".join([w['text'] for w in curr_line])
+            # ✅ نعكس ترتيب الكلمات لأن العربية RTL
+            line_words_reversed = list(reversed(curr_line))
+            line_str = " ".join([w['text'] for w in line_words_reversed])
             arabic_lines.append({
-                'words': curr_line,
+                'words': curr_line,  # نحتفظ بالترتيب الأصلي للهايلايت
                 'full_text': line_str,
                 'w': measure(line_str, font_arabic)[0]
             })
