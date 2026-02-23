@@ -934,30 +934,47 @@ def create_ayah_text_clip(words: list, translation: str = "", duration: float = 
             line_str = line_data['full_text']
             line_w = line_data['w']
             
-            # المعالجة البصرية للسطر بالكامل لضمان التنسيق
-            visual_line = get_display(line_str)
+            # ✅ حل مشكلة "ةروس": التحقق من وجود دعم الـ RTL في مكتبة الصور
+            from PIL import features
+            has_raqm = features.check('raqm')
+            
+            if has_raqm:
+                # إذا كان السيرفر يدعم RTL (غالباً في Linux)، نرسل النص مشكلاً فقط ونترك المكتبة تحدد الاتجاه
+                visual_line = line_str
+                text_dir = 'rtl'
+            else:
+                # إذا كان السيرفر لا يدعم RTL (مثل Windows العادي)، نستخدم العكس اليدوي
+                visual_line = get_display(line_str)
+                text_dir = None
             
             # حساب الإحداثيات الأساسية للسطر
             baseline_y = curr_y + baseline_offset
             center_x = W / 2
             
-            # رسم السطر بالكامل دفعة واحدة (هذا يحل مشكلة المسافات والارتفاع)
-            d_static.text((center_x + 2, baseline_y + 2), visual_line, font=font_arabic, fill=(0,0,0,160), anchor="ms")
-            d_static.text((center_x, baseline_y), visual_line, font=font_arabic, fill=(*rgb_text, 255), anchor="ms")
+            # رسم السطر بالكامل
+            # ملاحظة: نستخدم direction='rtl' فقط إذا كان raqm متاحاً
+            draw_args = {"font": font_arabic, "fill": (0,0,0,160), "anchor": "ms"}
+            if has_raqm: draw_args["direction"] = "rtl"
+            
+            d_static.text((center_x + 2, baseline_y + 2), visual_line, **draw_args)
+            draw_args["fill"] = (*rgb_text, 255)
+            d_static.text((center_x, baseline_y), visual_line, **draw_args)
             
             # حساب مواقع الكلمات للهايلايت بدقة داخل السطر
-            # نبدأ من اليمين لأن النص العربي RTL
             current_x_offset = center_x + (line_w / 2)
             
             for w in line_data['words']:
+                # لتحديد مكان الهايلايت، نحتاج دائماً للنسخة المرئية للكلمة
                 visual_w = get_display(w['text'])
-                # معالجة خاصة لأقواس الآيات
-                if '﴿' in visual_w or '﴾' in visual_w:
-                    import re
-                    match = re.search(r'(\d+)', visual_w)
-                    if match:
-                        # تصحيح يدوي للأقواس لضمان ظهورها بشكل﴿7﴾ في الرندر
-                        visual_w = f"﴾{match.group(1)}﴿"
+                
+                # تصحيح يدوي للأقواس لضمان ظهورها بشكل ﴿7﴾
+                import re
+                match = re.search(r'(\d+)', visual_w)
+                if match:
+                    # في بيئات Linux، أحياناً يكون العكس المسبق للقوس ضاراً، لذا نجرب التنسيق الأبسط
+                    num = match.group(1)
+                    if has_raqm: visual_w = f"({num})" # Raqm سيعوض الأقواس تلقائياً
+                    else: visual_w = f"﴾{num}﴿"
                 
                 # تخزين بيانات التظليل
                 # نستخدم قياس الكلمة الفعلي لضمان أن التظليل يغطي الحروف بدقة
