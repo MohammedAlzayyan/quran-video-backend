@@ -6,11 +6,13 @@ load_dotenv()
 
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
-# SSL transport options required for rediss:// URLs
-redis_transport_options = {}
+# إعدادات الـ SSL مهمة جداً للاتصال بقواعد بيانات Redis السحابية (Koyeb/Railway/etc)
+# إذا كان الرابط يبدأ بـ rediss (آمن)، يجب تفعيل خيارات التجاوز لنجاح الاتصال
+ssl_options = None
 if redis_url.startswith("rediss://"):
-    redis_transport_options = {
-        "ssl_cert_reqs": "CERT_NONE"
+    import ssl
+    ssl_options = {
+        "ssl_cert_reqs": ssl.CERT_NONE  # تجاوز فحص الشهادة للاتصال السريع
     }
 
 celery_app = Celery(
@@ -28,12 +30,14 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     task_time_limit=1800, # 30 minutes
-    broker_transport_options=redis_transport_options,
-    result_backend_transport_options=redis_transport_options,
-    beat_schedule={
-        "cleanup-expired-videos-daily": {
-            "task": "app.tasks.cleanup_old_videos",
-            "schedule": 86400.0, # Every 24 hours
-        },
-    },
+    # هذه الإعدادات هي التي تحل مشكلة الـ Retry limit exceeded
+    broker_use_ssl=True if ssl_options else False,
+    redis_backend_use_ssl=ssl_options if ssl_options else False,
+    broker_transport_options={
+        "retry_on_timeout": True,
+        "ssl": ssl_options
+    } if ssl_options else {},
+    result_backend_transport_options={
+        "ssl": ssl_options
+    } if ssl_options else {},
 )

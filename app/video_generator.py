@@ -833,11 +833,10 @@ def render_ayah_layout(words: list, translation: str, fontsize: int, font_family
             
             if curr_w + w_w > max_w and curr_line:
                 # إنهاء السطر الحالي وحساب بيانات الخط الكامل
-                # ✅ نعكس ترتيب الكلمات لأن العربية RTL
-                line_words_reversed = list(reversed(curr_line))
-                line_str = " ".join([w['text'] for w in line_words_reversed])
+                # ✅ ملاحظة: لا نعكس الكلمات هنا يدوياً، نترك get_display يتولى الأمر للسطر كاملاً
+                line_str = " ".join([w['text'] for w in curr_line])
                 arabic_lines.append({
-                    'words': curr_line,  # نحتفظ بالترتيب الأصلي للهايلايت
+                    'words': curr_line,
                     'full_text': line_str,
                     'w': measure(line_str, font_arabic)[0]
                 })
@@ -849,11 +848,9 @@ def render_ayah_layout(words: list, translation: str, fontsize: int, font_family
                 curr_w += (w_w + space_w)
                 
         if curr_line:
-            # ✅ نعكس ترتيب الكلمات لأن العربية RTL
-            line_words_reversed = list(reversed(curr_line))
-            line_str = " ".join([w['text'] for w in line_words_reversed])
+            line_str = " ".join([w['text'] for w in curr_line])
             arabic_lines.append({
-                'words': curr_line,  # نحتفظ بالترتيب الأصلي للهايلايت
+                'words': curr_line,
                 'full_text': line_str,
                 'w': measure(line_str, font_arabic)[0]
             })
@@ -958,7 +955,9 @@ def create_ayah_text_clip(words: list, translation: str = "", duration: float = 
                 if '﴿' in visual_w or '﴾' in visual_w:
                     import re
                     match = re.search(r'(\d+)', visual_w)
-                    if match: visual_w = f"﴾{match.group(1)}﴿"
+                    if match:
+                        # تصحيح يدوي للأقواس لضمان ظهورها بشكل﴿7﴾ في الرندر
+                        visual_w = f"﴾{match.group(1)}﴿"
                 
                 # تخزين بيانات التظليل
                 # نستخدم قياس الكلمة الفعلي لضمان أن التظليل يغطي الحروف بدقة
