@@ -25,14 +25,20 @@ except Exception as e:
     print(f"⚠️ Startup font check failed: {e}")
 
 # Configure CORS
-origins = [
+default_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://quran-video-omega.vercel.app",
 ]
+
+# Support additional origins via environment variable (comma-separated)
+extra_origins = os.getenv("CORS_ORIGINS", "")
+if extra_origins:
+    default_origins += [o.strip() for o in extra_origins.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=default_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
