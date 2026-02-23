@@ -1,0 +1,24 @@
+fastapi
+uvicorn
+moviepy
+requests
+python-multipart
+httpx
+python-dotenv
+arabic-reshaper
+python-bidi
+pillow
+numpy
+decorator
+imageio-ffmpeg
+sqlalchemy
+pydantic-settings
+# Pinning bcrypt to a version compatible with passlib
+passlib
+bcrypt==4.0.1
+cryptography
+python-jose[cryptography]
+psycopg2-binary
+celery
+redis
+email-validator
