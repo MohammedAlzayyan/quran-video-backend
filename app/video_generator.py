@@ -923,12 +923,21 @@ def create_ayah_text_clip(words: list, translation: str = "", duration: float = 
 
         # رسم النص العلوي (البسملة أو السورة)
         if top_text:
-            reshaped_top = layout['reshaper'].reshape(top_text)
-            top_visual = get_display(reshaped_top)
+            # ✅ حل مشكلة "ةروس" للنص العلوي
+            from PIL import features
+            has_raqm = features.check('raqm')
+            
+            if has_raqm:
+                top_visual = top_text
+                top_draw_args = {"font": font_arabic, "anchor": "mm", "direction": "rtl"}
+            else:
+                top_visual = get_display(layout['reshaper'].reshape(top_text))
+                top_draw_args = {"font": font_arabic, "anchor": "mm"}
+            
             # Shadow
-            d_static.text((W/2+2, H*0.14+2), top_visual, font=font_arabic, fill=(0,0,0,180), anchor="mm")
+            d_static.text((W/2+2, H*0.14+2), top_visual, fill=(0,0,0,180), **top_draw_args)
             # Main text
-            d_static.text((W/2, H*0.14), top_visual, font=font_arabic, fill=(*rgb_text, 255), anchor="mm")
+            d_static.text((W/2, H*0.14), top_visual, fill=(*rgb_text, 255), **top_draw_args)
 
         for line_idx, line_data in enumerate(layout['arabic_lines']):
             line_str = line_data['full_text']
