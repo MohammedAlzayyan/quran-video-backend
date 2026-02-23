@@ -927,13 +927,13 @@ def create_ayah_text_clip(words: list, translation: str = "", duration: float = 
             from PIL import features
             has_raqm = features.check('raqm')
             
-            # السورة والقارئ يحتاجان للـ Reshape دائماً لربط الحروف
-            reshaped_top = layout['reshaper'].reshape(top_text)
-            
             if has_raqm:
-                top_visual = reshaped_top # نرسله مشكلاً وبـ RTL native
+                # القاعدة الذهبية: مع راقم، نرسل النص الخام وهو يتولى الربط والاتجاه
+                top_visual = top_text
                 top_draw_args = {"font": font_arabic, "anchor": "mm", "direction": "rtl"}
             else:
+                # إذا لم يوجد راقم (بيئات بدائية)، نضطر للتشكيل والعكس اليدوي
+                reshaped_top = layout['reshaper'].reshape(top_text)
                 top_visual = get_display(reshaped_top)
                 top_draw_args = {"font": font_arabic, "anchor": "mm"}
             

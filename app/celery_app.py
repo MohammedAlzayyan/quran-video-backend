@@ -5,26 +5,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# تنظيف الرابط بشكل عدواني لمنع الـ // الزائدة
-raw_url = os.getenv("REDIS_URL", "redis://localhost:6379/0").strip()
-# إزالة السلاشات من النهاية
-while raw_url.endswith('/'):
-    raw_url = raw_url[:-1]
+# الرابط الأصلي من البيئة
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0").strip()
 
-# بناء الرابط مع بارامترات SSL لضمان وصولها لجميع المحركات
-if raw_url.startswith("rediss://"):
-    if "?" in raw_url:
-        redis_url = f"{raw_url}&ssl_cert_reqs=none"
-    else:
-        redis_url = f"{raw_url}?ssl_cert_reqs=none"
-else:
-    redis_url = raw_url
-
-# إعدادات SSL الصريحة لـ Upstash
+# تعيين إعدادات SSL الصارمة
 ssl_conf = None
 if redis_url.startswith("rediss://"):
     ssl_conf = {
-        'ssl_cert_reqs': ssl.CERT_NONE
+        'ssl_cert_reqs': ssl.CERT_NONE  # تجاوز الشهادات للاتصال بـ Upstash
     }
 
 celery_app = Celery(
@@ -42,14 +30,20 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     task_time_limit=1800,
-    # إعدادات SSL الحاسمة
+    
+    # الإعدادات الحاسمة لتجاوز مشكلة Retry limit exceeded
     broker_use_ssl=ssl_conf,
     redis_backend_use_ssl=ssl_conf,
     broker_connection_retry_on_startup=True,
+    
+    # خيارات النقل لضمان استقرار الاتصال بـ Upstash
     broker_transport_options={
         'ssl': ssl_conf,
         'retry_on_timeout': True,
+        'socket_timeout': 30,
+        'socket_connect_timeout': 30,
     } if ssl_conf else {},
+    
     result_backend_transport_options={
         'ssl': ssl_conf,
         'retry_on_timeout': True,
