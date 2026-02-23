@@ -923,17 +923,17 @@ def create_ayah_text_clip(words: list, translation: str = "", duration: float = 
 
         # رسم النص العلوي (البسملة أو السورة)
         if top_text:
-            # ✅ حل مشكلة "ةروس" للنص العلوي
             from PIL import features
             has_raqm = features.check('raqm')
             
+            # ✅ السر: التشكيل المسبق يضمن ترابط الحروف (سـورة)
+            # ثم نرسله لـ Raqm للتحكم في الاتجاه
+            reshaped_top = layout['reshaper'].reshape(top_text)
+            
             if has_raqm:
-                # القاعدة الذهبية: مع راقم، نرسل النص الخام وهو يتولى الربط والاتجاه
-                top_visual = top_text
+                top_visual = reshaped_top
                 top_draw_args = {"font": font_arabic, "anchor": "mm", "direction": "rtl"}
             else:
-                # إذا لم يوجد راقم (بيئات بدائية)، نضطر للتشكيل والعكس اليدوي
-                reshaped_top = layout['reshaper'].reshape(top_text)
                 top_visual = get_display(reshaped_top)
                 top_draw_args = {"font": font_arabic, "anchor": "mm"}
             
@@ -941,6 +941,9 @@ def create_ayah_text_clip(words: list, translation: str = "", duration: float = 
             d_static.text((W/2+2, H*0.14+2), top_visual, fill=(0,0,0,180), **top_draw_args)
             # Main text
             d_static.text((W/2, H*0.14), top_visual, fill=(*rgb_text, 255), **top_draw_args)
+
+        import gc
+        gc.collect() # تنظيف الذاكرة بعد بناء اللوحات الثقيلة
 
         for line_idx, line_data in enumerate(layout['arabic_lines']):
             line_str = line_data['full_text']

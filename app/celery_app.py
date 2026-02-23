@@ -5,14 +5,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# الرابط الأصلي من البيئة
+# الرابط الأصلي
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0").strip()
 
-# تعيين إعدادات SSL الصارمة
+# إعداد SSL قوي لـ Upstash
 ssl_conf = None
 if redis_url.startswith("rediss://"):
     ssl_conf = {
-        'ssl_cert_reqs': ssl.CERT_NONE  # تجاوز الشهادات للاتصال بـ Upstash
+        'ssl_cert_reqs': ssl.CERT_NONE
     }
 
 celery_app = Celery(
@@ -31,19 +31,23 @@ celery_app.conf.update(
     task_track_started=True,
     task_time_limit=1800,
     
-    # الإعدادات الحاسمة لتجاوز مشكلة Retry limit exceeded
+    # إعدادات لتقليل استهلاك الذاكرة (منع الـ OOM)
+    worker_max_tasks_per_child=10,  # إعادة تشغيل العامل بعد 10 مهام لتنظيف الرام
+    worker_concurrency=1,           # مهم جداً للـ Free Instances
+    
+    # حل مشكلة الـ Retry limit exceeded
     broker_use_ssl=ssl_conf,
     redis_backend_use_ssl=ssl_conf,
     broker_connection_retry_on_startup=True,
-    
-    # خيارات النقل لضمان استقرار الاتصال بـ Upstash
+    broker_heartbeat=10,
     broker_transport_options={
         'ssl': ssl_conf,
         'retry_on_timeout': True,
-        'socket_timeout': 30,
-        'socket_connect_timeout': 30,
+        'visibility_timeout': 3600,
     } if ssl_conf else {},
     
+    # ضبط الباك اند ليكون أكثر صبراً
+    redis_backend_health_check_interval=30,
     result_backend_transport_options={
         'ssl': ssl_conf,
         'retry_on_timeout': True,
